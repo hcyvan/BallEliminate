@@ -53,19 +53,36 @@ bool HelloWorld::init()
 	};
 	Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(closeListener,close);
 
+	//
 	return true;
 }
 
 void HelloWorld::ballMatrixInit(float x,float y)
 {
+	// 初始化ballMatrix
 	for(int row=0;row<ROW_NUM;++row){
 		for(int col=0;col<COL_NUM;++col){
-			auto ball=ballMatrix[row][col]=BallSprite::create(x+ballWidth*col,y+ballWidth*row+FALL_DIST);
-			ball->runAction(MoveBy::create(FALL_TIME,Point(0,-FALL_DIST)));
-			//将ballMatrix中的BallSprite* 添加到HelloWorld层中
-			this->addChild(ballMatrix[row][col]);
+			ballMatrix[row][col]=nullptr;		
 		}
 	}
+	// 添加障碍物
+	createObstacle(4,2);
+	createObstacle(5,3);
+
+	createObstacle(3,4);
+	createObstacle(4,5);
+	createObstacle(5,6);
+	createObstacle(6,7);
+
+	createObstacle(1,2);
+	createObstacle(2,2);
+
+
+
+
+	
+	// 添加小球
+	addBallTop();
 }
 
 void HelloWorld::update(float d)
@@ -75,7 +92,10 @@ void HelloWorld::update(float d)
 		checkDeleteDown();	
     }
 	if (!updateIsMoving()) {
-		addBall();		
+		addBallTop();		
+    }
+	if (!updateIsMoving()) {
+		addBallMid();		
     }
 	if (!updateIsMoving()) {
 		swapBall();		
@@ -96,23 +116,29 @@ void HelloWorld::checkDeleteDown()
 		}
 	}
 	// 下落
-	int nullptr_num=0;
 	for(int i=0;i<COL_NUM;++i){
-		nullptr_num=0;
-		for (int j=0;j<ROW_NUM;++j){
-			if(ballMatrix[j][i]==nullptr){
-				++nullptr_num;
-			}else{
-				// 将BallSpriet下移
-				if(nullptr_num!=0){
-					ballMatrix[j-nullptr_num][i]=ballMatrix[j][i];
-					ballMatrix[j-nullptr_num][i]->runAction(MoveBy::create(FALL_TIME,Point(0,-nullptr_num*ballWidth)));
+		int span=0;
+		for (int j=0;j<=ROW_NUM;++j){
+			++span;
+			if(j==ROW_NUM || (ballMatrix[j][i] != nullptr && ballMatrix[j][i]->getImgIndex()==10)){
+				int nullptr_num=0;
+				for(int k=j-span+1;k<j;++k){
+					if(ballMatrix[k][i]==nullptr){
+						++nullptr_num;
+					}else{
+					// 将BallSpriet下移
+						if(nullptr_num!=0){
+							ballMatrix[k-nullptr_num][i]=ballMatrix[k][i];					
+							ballMatrix[k-nullptr_num][i]->runAction(MoveBy::create(ADD_BALL_TOP_TIME,Point(0,-nullptr_num*ballWidth)));
+						}
+					}
 				}
+				// 将下落的ballMatrix中的指针置0
+				for(int k =j-nullptr_num;k<j;++k){
+					ballMatrix[k][i]=nullptr;
+				}
+				span=0;
 			}
-		}
-		// 将下落的ballMatrix中的指针置0
-		for(int j=ROW_NUM-nullptr_num;j<ROW_NUM;++j){
-			ballMatrix[j][i]=nullptr;
 		}
 	}
 }
@@ -130,7 +156,9 @@ bool HelloWorld::checkUpdateIs3()
 				ballMatrix[j][i+2]!=nullptr &&
 				// 判断是否三个连续的球相同
 				ballMatrix[j][i]->getImgIndex()==ballMatrix[j][i+1]->getImgIndex() &&
-				ballMatrix[j][i]->getImgIndex()==ballMatrix[j][i+2]->getImgIndex()
+				ballMatrix[j][i]->getImgIndex()==ballMatrix[j][i+2]->getImgIndex() &&
+				// 保证不为障碍物
+				ballMatrix[j][i]->getImgIndex()!=10
 				){
 					hasIs3=true;
 					ballMatrix[j][i]->setIs3(true);
@@ -149,7 +177,9 @@ bool HelloWorld::checkUpdateIs3()
 				ballMatrix[j+2][i]!=nullptr &&
 				// 判断是否三个连续的球相同
 				ballMatrix[j][i]->getImgIndex()==ballMatrix[j+1][i]->getImgIndex() &&
-				ballMatrix[j][i]->getImgIndex()==ballMatrix[j+2][i]->getImgIndex()
+				ballMatrix[j][i]->getImgIndex()==ballMatrix[j+2][i]->getImgIndex() &&
+				// 保证不为障碍物
+				ballMatrix[j][i]->getImgIndex()!=10
 				){
 					hasIs3=true;
 					ballMatrix[j][i]->setIs3(true);
@@ -186,21 +216,57 @@ bool HelloWorld::checkUpdateIs3()
 
 	return hasIs3;
 }
-
 // 添加小球
-void HelloWorld::addBall()
+void HelloWorld::addBallTop()
 {
 	for(int i=0;i<COL_NUM;++i){
-		for (int j=0;j<ROW_NUM;++j){
-			if(ballMatrix[j][i]==nullptr){
-				auto ball=ballMatrix[j][i]=BallSprite::create(matrixX+i*ballWidth,matrixY+j*ballWidth+FALL_DIST);
-				ball->runAction(MoveBy::create(FALL_TIME,Point(0,-FALL_DIST)));
-				this->addChild(ballMatrix[j][i]);
+		int span=0;
+		int nullptr_num=0;
+		for (int j=0;j<=ROW_NUM;++j){
+			++span;
+			if(j<ROW_NUM){
+				if(ballMatrix[j][i]==nullptr){
+					++nullptr_num;
+				}else if(ballMatrix[j][i]->getImgIndex()==10){
+					span=0;
+					nullptr_num=0;
+				}
+			}else{
+				// 从上方添加小球
+				for(int k=j-nullptr_num;k<j;k++){
+					ballMatrix[k][i]=BallSprite::create(matrixX+i*ballWidth,matrixY+k*ballWidth+FALL_DIST);
+					ballMatrix[k][i]->runAction(MoveBy::create(ADD_BALL_TOP_TIME,Point(0,-FALL_DIST)));
+					this->addChild(ballMatrix[k][i]);
+				}
 			}
 		}
 	}
 }
-
+void HelloWorld::addBallMid()
+{
+	for(int i=0;i<COL_NUM;++i){
+		for (int j=0;j<ROW_NUM;++j){
+			if(ballMatrix[j][i] != nullptr && ballMatrix[j][i]->getImgIndex()==10){
+				int x=i-1+(random()%2)*2;
+				if(ballMatrix[j-1][x]!=nullptr && ballMatrix[j-1][x]->getImgIndex()!=10)
+					moveBall(x,j,i,j-1,ADD_BALL_MID_TIME);
+			}
+		}
+	}
+}
+// 移动小球
+void HelloWorld::moveBall(int x1, int y1, int x2,int y2, float t)
+{
+	if(x1>=0 && x1< COL_NUM && y1 >=0 && y1<COL_NUM &&
+		x2>=0 && x2< COL_NUM && y2 >=0 && y2<COL_NUM &&
+		ballMatrix[y1][x1]!=nullptr && ballMatrix[y2][x2]==nullptr &&
+		ballMatrix[y1][x1]->getImgIndex()!=10 
+		){
+		ballMatrix[y2][x2]=ballMatrix[y1][x1];
+		ballMatrix[y1][x1]=nullptr;
+		ballMatrix[y2][x2]->runAction(MoveTo::create(t,Vec2(matrixX+x2*ballWidth,matrixY+y2*ballWidth)));
+	}
+}
 // 交换两小球
 void HelloWorld::swapBall()
 {
@@ -270,11 +336,13 @@ bool HelloWorld::touchBeginHandler(cocos2d::Touch *t,cocos2d::Event *e)
 {
 	if(!swapPairFirstOK && !swapPairSecondOK && this->indexOfMatrix(t->getLocation()).first>=0){
 		swapPair.first=this->indexOfMatrix(t->getLocation());
+		log("first: %d %d",swapPair.first.first,swapPair.first.second);
 		swapPairFirstOK=true;
 		return false;
 	}
 	if(swapPairFirstOK && !swapPairSecondOK && this->indexOfMatrix(t->getLocation()).first>=0){
 		swapPair.second=this->indexOfMatrix(t->getLocation());
+		log("second: %d %d",swapPair.second.first,swapPair.second.second);
 		swapPairSecondOK=true;
 		swapPairFirstOK=false;
 		swapPairSecondOK=false;
@@ -283,15 +351,12 @@ bool HelloWorld::touchBeginHandler(cocos2d::Touch *t,cocos2d::Event *e)
 	}
 }
 
-/*
+
 // 添加障碍物
-void HelloWorld::addObstacle(int i,int j)
+void HelloWorld::createObstacle(int i,int j)
 {
-	auto obstacle=BallSprite::create(matrixX+i*ballWidth,matrixY+j*ballWidth+FALL_DIST);
-	obstacle->setIsObstacle(true);
-	obstacle->setImgIndex(10);
-	obstacle->setTexture("obstacle.png");
-	obstacle->runAction(MoveBy::create(FALL_TIME,Point(0,-FALL_DIST)));
-	addChild(obstacle);
+	ballMatrix[j][i]=BallSprite::create(matrixX+i*ballWidth,matrixY+j*ballWidth);
+	ballMatrix[j][i]->setImgIndex(10);
+	ballMatrix[j][i]->setTexture("obstacle.png");
+	addChild(ballMatrix[j][i]);
 }
-*/

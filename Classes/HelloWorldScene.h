@@ -5,11 +5,13 @@
 #include "cocos2d.h"
 #include <utility>
 USING_NS_CC;
-#define ROW_NUM (9)			//行数
-#define COL_NUM (7)			//列数
-#define FALL_DIST (100.0)	//小球下落距离
-#define FALL_TIME (0.2)		//小球下落时间
-#define SWAP_TIME (0.2)		//小球交换时间
+#define ROW_NUM (9)					//行数
+#define COL_NUM (9)					//列数
+#define FALL_DIST (100.0)			//小球下落距离
+#define FALL_TIME (0.2)				//小球下落时间
+#define ADD_BALL_TOP_TIME (0.2)		//上方添加小球的时间
+#define ADD_BALL_MID_TIME (0.02)		//中间添加小球的时间
+#define SWAP_TIME (0.2)				//小球交换时间
 
 class HelloWorld : public cocos2d::Layer
 {
@@ -45,18 +47,21 @@ private:
 	void checkDeleteDown();
 	// 更新并检查是否存在相连的三个连续小球
 	bool checkUpdateIs3();
-	// 添加小球
-	void addBall();
+	// 添加小球(从上方/中间
+	void addBallTop();
+	void addBallMid();
 	// 添加障碍物
-	//void addObstacle(int,int);
+	void createObstacle(int,int);
 	// 判断屏幕上是否有小球在移动
 	bool updateIsMoving();
-	// 将屏幕上的像素坐标转换成小球在二维数组中的坐标，并返回。如果像素坐标没有在小球矩阵范围内怎返回(-1,-1)
+	// 将屏幕上的像素坐标转换成小球在二维数组中的坐标，并返回。如果像素坐标没有在小球矩阵范围内怎返回(-1,-1)）
 	std::pair<int,int> indexOfMatrix(Vec2);
 	// 点击事件的处理函数
 	bool touchBeginHandler(cocos2d::Touch *t,cocos2d::Event *e);
 	//	交换存储在swapPair中的连个坐标出的小球
 	void swapBall();
+	// 移动小球
+	void moveBall(int, int, int, int, float);
 
 
 	// 屏幕高度和宽度
